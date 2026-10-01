@@ -1,0 +1,6 @@
+// Override these settings for your own Apple Developer team and registered IDs.
+SEPASS_BUNDLE_ID = com.stepnoy.sepass
+APP_GROUP_IDENTIFIER = group.$(SEPASS_BUNDLE_ID)
+AUTOFILL_KEYCHAIN_GROUP = $(AppIdentifierPrefix)$(SEPASS_BUNDLE_ID).autofill
+// Keep machine-specific signing settings out of version control.
+#include? "LocalSigning.xcconfig"

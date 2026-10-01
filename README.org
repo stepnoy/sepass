@@ -217,3 +217,9 @@ an app that uses the secure enclave and interacts with ~pass~, but WE
 ARE NOT SECURITY EXPERTS. We've tried to be very striaghtforward in
 our implementation, but are more than happy to accept criticism and
 improvements from anyone with expertise in this area. Thanks!
+
+* AutoFill development (fork)
+The =feature/secure-enclave-autofill= branch adds a read-only iOS credential
+provider using the device's Secure Enclave agreement key. See
+[[file:docs/autofill-design.org][the design]] and [[file:docs/autofill-testing.org][build instructions, validation status and device acceptance tests]].
+Physical-device validation is required before using real credentials.

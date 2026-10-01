@@ -7,7 +7,7 @@ struct RootView: View {
     @State private var selection: Tab = .passwords
     @State private var didSetInitialTab = false
 
-    enum Tab { case passwords, sync, key, about }
+    enum Tab { case passwords, sync, key, autoFill, about }
 
     var body: some View {
         TabView(selection: $selection) {
@@ -20,6 +20,9 @@ struct RootView: View {
             KeyView()
                 .tabItem { Label("Key", systemImage: "key.fill") }
                 .tag(Tab.key)
+            AutoFillView()
+                .tabItem { Label("AutoFill", systemImage: "rectangle.and.pencil.and.ellipsis") }
+                .tag(Tab.autoFill)
             AboutView()
                 .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(Tab.about)

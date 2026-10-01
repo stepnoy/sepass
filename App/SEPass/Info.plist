@@ -37,9 +37,9 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>SE Pass uses Face ID to authorize decrypting your passwords with the key in the Secure Enclave.</string>
-	<!-- Export compliance is answered in App Store Connect per version (no
-	     ITSAppUsesNonExemptEncryption key here), so the build carries no compliance
-	     code to mismatch the App Store Connect documentation. SE Pass uses standard
-	     AES/ECDH (RFC 6637) to decrypt the user's own password store. -->
+	<key>AutoFillAppGroup</key>
+	<string>$(APP_GROUP_IDENTIFIER)</string>
+	<key>AutoFillKeychainGroup</key>
+	<string>$(AUTOFILL_KEYCHAIN_GROUP)</string>
 </dict>
 </plist>

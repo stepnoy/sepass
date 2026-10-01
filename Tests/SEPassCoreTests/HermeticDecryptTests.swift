@@ -36,6 +36,19 @@ final class HermeticDecryptTests: XCTestCase {
         let plaintext = try PGPDecryptor(agreement: agreement, recipient: recipient).decrypt(ciphertext)
         XCTAssertEqual(String(data: plaintext, encoding: .utf8), meta["plaintext"] as? String,
                        "\(file) did not decrypt to the expected plaintext")
+
+        // Exercise the actual AutoFill snapshot -> identity -> decrypt -> login path
+        // for both pass binary and prs armored stores, using only public fixtures.
+        let entry = AutoFillEncryptedEntry(id: "example.com/alice", ciphertext: ciphertext)
+        let published = try AutoFillSnapshot(keyInfo: metaData, entries: [entry])
+        let loaded = try JSONDecoder().decode(AutoFillSnapshot.self, from: JSONEncoder().encode(published))
+        try loaded.validate()
+        let selected = try loaded.entry(for: published.identifier(for: entry))
+        let login = try AutoFillLogin(
+            plaintext: PGPDecryptor(agreement: agreement, recipient: recipient).decrypt(selected.ciphertext),
+            fallbackUsername: selected.label)
+        XCTAssertEqual(login.username, "alice")
+        XCTAssertEqual(login.password, "fixture-secret-🔐")
     }
 
     private func bytes(fromHex hex: String) -> [UInt8] {

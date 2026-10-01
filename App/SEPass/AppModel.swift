@@ -13,6 +13,46 @@ final class AppModel: ObservableObject {
     @Published var status: String?
     @Published var statusIsError = false
     @Published var isBusy = false
+    @Published private(set) var autoFillEnabled = UserDefaults.standard.bool(forKey: "autofill.enabled")
+    @Published private(set) var autoFillStatus: String?
+    private let autoFill = AutoFillStore()
+    private var autoFillRevision = UUID()
+
+    func setAutoFillEnabled(_ enabled: Bool) {
+        autoFillEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "autofill.enabled")
+        refreshAutoFill()
+    }
+
+    func refreshAutoFill() {
+        let revision = UUID(); autoFillRevision = revision
+        do {
+            let snapshot: AutoFillSnapshot?
+            if autoFillEnabled, let info = keyInfo, hasStore {
+                snapshot = try autoFill.publish(root: storeURL, info: info,
+                                               agreementBlob: keyManager.autoFillAgreementBlob())
+                autoFillStatus = "Ready: \(snapshot!.entries.count) encrypted entries."
+            } else {
+                try autoFill.clear()
+                snapshot = nil
+                autoFillStatus = autoFillEnabled ? "Generate a key and sync a store first." : "AutoFill is off."
+            }
+            autoFill.replaceSuggestions(snapshot) { [weak self] error in
+                Task { @MainActor in
+                    guard let self, self.autoFillRevision == revision else { return }
+                    if error != nil { self.autoFillStatus = "The system suggestions could not be updated. Open SE Pass and try Refresh again." }
+                }
+            }
+        } catch {
+            // Fail closed: never retain an older usable store after a failed refresh.
+            let cleanupError: Error?
+            do { try autoFill.clear(); cleanupError = nil } catch { cleanupError = error }
+            autoFill.replaceSuggestions(nil) { _ in }
+            autoFillStatus = cleanupError == nil
+                ? "AutoFill is unavailable: \(error.localizedDescription)"
+                : "AutoFill cleanup failed. Turn off SE Pass in iOS AutoFill settings before continuing."
+        }
+    }
 
     let keyManager = KeyManager()
     let sshKeys = SSHKeyManager()
@@ -121,17 +161,20 @@ final class AppModel: ObservableObject {
     // MARK: - Key
 
     func generateKey(userID: String) {
+        setAutoFillEnabled(false)
         do {
             // Creation time is "now" truncated to seconds; stable thereafter via cache.
             let now = UInt32(Date().timeIntervalSince1970)
             keyInfo = try keyManager.generate(userID: userID, creationTime: now)
             keyError = nil
+            refreshAutoFill()
         } catch {
             keyError = error.localizedDescription
         }
     }
 
     func deleteKey() {
+        setAutoFillEnabled(false)
         keyManager.deleteKey()
         keyInfo = nil
         keyError = nil
@@ -140,6 +183,7 @@ final class AppModel: ObservableObject {
     /// Delete only the cloned password store, leaving the Enclave keys, known hosts, and
     /// sync settings intact (so you can re-clone immediately).
     func erasePasswords() {
+        setAutoFillEnabled(false)
         try? FileManager.default.removeItem(at: storeURL)
         lastSyncedHead = nil
         nodes = []
@@ -148,6 +192,7 @@ final class AppModel: ObservableObject {
     /// Wipe everything — Enclave keys (GPG + SSH), the cloned store, and saved settings —
     /// resetting SE Pass to its first-launch state. Used for testing and as a hard reset.
     func eraseAll() {
+        setAutoFillEnabled(false)
         keyManager.deleteKey()
         sshKeys.deleteKey()
         knownHosts.removeAll()
@@ -168,6 +213,7 @@ final class AppModel: ObservableObject {
         // Pointing at a different repo/branch invalidates the remembered tip, so the
         // next sync does a full clone rather than trusting a SHA from the old remote.
         if newRemote.url != remote.url || newRemote.branch != remote.branch {
+            setAutoFillEnabled(false)
             lastSyncedHead = nil
         }
         remote = newRemote
@@ -183,7 +229,7 @@ final class AppModel: ObservableObject {
             // last sync — the common case.
             if self.hasStore, let lastHead = self.lastSyncedHead,
                let remoteHead = try? await self.git.remoteHead(self.remote), remoteHead == lastHead {
-                await MainActor.run { self.status = "Already up to date." }
+                await MainActor.run { self.status = "Already up to date."; self.refreshAutoFill() }
                 return
             }
             // Clone into a temp dir and only swap it in on success, so a failed clone
@@ -207,6 +253,7 @@ final class AppModel: ObservableObject {
     /// today without the git transport and is handy for `file://`/local repos.
     func importLocalStore(from url: URL) {
         run {
+            self.setAutoFillEnabled(false)
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             try? FileManager.default.removeItem(at: self.storeURL)
@@ -218,6 +265,7 @@ final class AppModel: ObservableObject {
     }
 
     func reloadTree() {
+        defer { refreshAutoFill() }
         guard FileManager.default.fileExists(atPath: storeURL.path) else { nodes = []; return }
         nodes = PassStore(root: storeURL).load()
     }

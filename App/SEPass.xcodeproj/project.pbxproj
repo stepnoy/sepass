@@ -5,13 +5,28 @@
 	};
 	objectVersion = 71;
 	objects = {
+/* Begin PBXTargetDependency section */
+		BBBBBBBBBBBBBBBBBBBB0026 = {isa = PBXTargetDependency; target = BBBBBBBBBBBBBBBBBBBB0020; targetProxy = BBBBBBBBBBBBBBBBBBBB0025; };
+/* End PBXTargetDependency section */
+/* Begin PBXContainerItemProxy section */
+		BBBBBBBBBBBBBBBBBBBB0025 = {isa = PBXContainerItemProxy; containerPortal = AAAAAAAAAAAAAAAAAAAA0001; proxyType = 1; remoteGlobalIDString = BBBBBBBBBBBBBBBBBBBB0020; remoteInfo = SEPassAutoFill; };
+/* End PBXContainerItemProxy section */
+/* Begin PBXCopyFilesBuildPhase section */
+		BBBBBBBBBBBBBBBBBBBB0024 = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (BBBBBBBBBBBBBBBBBBBB0018, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXBuildFile section */
 		AAAAAAAAAAAAAAAAAAAA0018 /* SEPassCore in Frameworks */ = {isa = PBXBuildFile; productRef = AAAAAAAAAAAAAAAAAAAA0017 /* SEPassCore */; };
+		BBBBBBBBBBBBBBBBBBBB0015 = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0005; };
+		BBBBBBBBBBBBBBBBBBBB0016 = {isa = PBXBuildFile; productRef = BBBBBBBBBBBBBBBBBBBB0017; };
+		BBBBBBBBBBBBBBBBBBBB0018 = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0001; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AAAAAAAAAAAAAAAAAAAA0005 /* SE Pass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SE Pass.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBBBBBBBBBBBBBBBBBBB0001 = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; path = SEPassAutoFill.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBBBBBBBBBBBBBBBBBBB0002 = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = AutoFill.xcconfig; sourceTree = "<group>"; };
+		BBBBBBBBBBBBBBBBBBBB0005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SEPass/Crypto/SecureEnclaveKeys.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -19,13 +34,17 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				SEPass.entitlements,
 			);
 			target = AAAAAAAAAAAAAAAAAAAA0004 /* SEPass */;
 		};
+		BBBBBBBBBBBBBBBBBBBB0008 = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, SEPassAutoFill.entitlements, ); target = BBBBBBBBBBBBBBBBBBBB0020; };
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AAAAAAAAAAAAAAAAAAAA0006 /* SEPass */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AAAAAAAAAAAAAAAAAAAA0019 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = SEPass; sourceTree = "<group>"; };
+		BBBBBBBBBBBBBBBBBBBB0006 = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = AutoFillShared; sourceTree = "<group>"; };
+		BBBBBBBBBBBBBBBBBBBB0007 = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BBBBBBBBBBBBBBBBBBBB0008, ); explicitFileTypes = {}; explicitFolders = (); path = SEPassAutoFill; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,6 +56,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BBBBBBBBBBBBBBBBBBBB0021 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (BBBBBBBBBBBBBBBBBBBB0016, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -44,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				AAAAAAAAAAAAAAAAAAAA0006 /* SEPass */,
+				BBBBBBBBBBBBBBBBBBBB0006, BBBBBBBBBBBBBBBBBBBB0007, BBBBBBBBBBBBBBBBBBBB0002, BBBBBBBBBBBBBBBBBBBB0005,
 				AAAAAAAAAAAAAAAAAAAA0003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,6 +73,7 @@
 			isa = PBXGroup;
 			children = (
 				AAAAAAAAAAAAAAAAAAAA0005 /* SE Pass.app */,
+				BBBBBBBBBBBBBBBBBBBB0001,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,12 +88,15 @@
 				AAAAAAAAAAAAAAAAAAAA0013 /* Sources */,
 				AAAAAAAAAAAAAAAAAAAA0014 /* Frameworks */,
 				AAAAAAAAAAAAAAAAAAAA0015 /* Resources */,
+				BBBBBBBBBBBBBBBBBBBB0024,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BBBBBBBBBBBBBBBBBBBB0026,
 			);
 			fileSystemSynchronizedGroups = (
+				BBBBBBBBBBBBBBBBBBBB0006,
 				AAAAAAAAAAAAAAAAAAAA0006 /* SEPass */,
 			);
 			name = SEPass;
@@ -82,6 +107,11 @@
 			productReference = AAAAAAAAAAAAAAAAAAAA0005 /* SE Pass.app */;
 			productType = "com.apple.product-type.application";
 		};
+		BBBBBBBBBBBBBBBBBBBB0020 = {isa = PBXNativeTarget; buildConfigurationList = BBBBBBBBBBBBBBBBBBBB0027;
+ buildPhases = (BBBBBBBBBBBBBBBBBBBB0022, BBBBBBBBBBBBBBBBBBBB0021, BBBBBBBBBBBBBBBBBBBB0023, ); buildRules = (); dependencies = ();
+ fileSystemSynchronizedGroups = (BBBBBBBBBBBBBBBBBBBB0006, BBBBBBBBBBBBBBBBBBBB0007, ); name = SEPassAutoFill;
+ packageProductDependencies = (BBBBBBBBBBBBBBBBBBBB0017, ); productName = SEPassAutoFill; productReference = BBBBBBBBBBBBBBBBBBBB0001;
+ productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -114,6 +144,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				BBBBBBBBBBBBBBBBBBBB0020,
 				AAAAAAAAAAAAAAAAAAAA0004 /* SEPass */,
 			);
 		};
@@ -127,6 +158,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BBBBBBBBBBBBBBBBBBBB0023 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -137,6 +169,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BBBBBBBBBBBBBBBBBBBB0022 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (BBBBBBBBBBBBBBBBBBBB0015, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -183,12 +216,13 @@
 		};
 		AAAAAAAAAAAAAAAAAAAA0011 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BBBBBBBBBBBBBBBBBBBB0002;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = 64ZW2T6NV9;
+				CODE_SIGN_ENTITLEMENTS = SEPass/SEPass.entitlements;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SEPass/Info.plist;
@@ -198,7 +232,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.2.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.modiot.sepass;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SEPASS_BUNDLE_ID)";
 				PRODUCT_NAME = "SE Pass";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -208,12 +242,13 @@
 		};
 		AAAAAAAAAAAAAAAAAAAA0012 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BBBBBBBBBBBBBBBBBBBB0002;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = 64ZW2T6NV9;
+				CODE_SIGN_ENTITLEMENTS = SEPass/SEPass.entitlements;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SEPass/Info.plist;
@@ -223,7 +258,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.2.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.modiot.sepass;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SEPASS_BUNDLE_ID)";
 				PRODUCT_NAME = "SE Pass";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -231,6 +266,24 @@
 			};
 			name = Release;
 		};
+		BBBBBBBBBBBBBBBBBBBB0028 = {isa = XCBuildConfiguration; baseConfigurationReference = BBBBBBBBBBBBBBBBBBBB0002; buildSettings = {
+ APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic;
+ CODE_SIGN_ENTITLEMENTS = SEPassAutoFill/SEPassAutoFill.entitlements;
+ CURRENT_PROJECT_VERSION = 6; GENERATE_INFOPLIST_FILE = NO;
+ INFOPLIST_FILE = SEPassAutoFill/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+ LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+ MARKETING_VERSION = 1.2.2; PRODUCT_BUNDLE_IDENTIFIER = "$(SEPASS_BUNDLE_ID).AutoFill";
+ PRODUCT_NAME = SEPassAutoFill; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";
+ }; name = Debug; };
+		BBBBBBBBBBBBBBBBBBBB0029 = {isa = XCBuildConfiguration; baseConfigurationReference = BBBBBBBBBBBBBBBBBBBB0002; buildSettings = {
+ APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic;
+ CODE_SIGN_ENTITLEMENTS = SEPassAutoFill/SEPassAutoFill.entitlements;
+ CURRENT_PROJECT_VERSION = 6; GENERATE_INFOPLIST_FILE = NO;
+ INFOPLIST_FILE = SEPassAutoFill/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+ LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+ MARKETING_VERSION = 1.2.2; PRODUCT_BUNDLE_IDENTIFIER = "$(SEPASS_BUNDLE_ID).AutoFill";
+ PRODUCT_NAME = SEPassAutoFill; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";
+ }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -252,6 +305,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		BBBBBBBBBBBBBBBBBBBB0027 = {isa = XCConfigurationList; buildConfigurations = (BBBBBBBBBBBBBBBBBBBB0028, BBBBBBBBBBBBBBBBBBBB0029, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -266,6 +320,7 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SEPassCore;
 		};
+		BBBBBBBBBBBBBBBBBBBB0017 = {isa = XCSwiftPackageProductDependency; productName = SEPassCore; };
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AAAAAAAAAAAAAAAAAAAA0001 /* Project object */;
