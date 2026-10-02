@@ -223,3 +223,9 @@ The =feature/secure-enclave-autofill= branch adds a read-only iOS credential
 provider using the device's Secure Enclave agreement key. See
 [[file:docs/autofill-design.org][the design]] and [[file:docs/autofill-testing.org][build instructions, validation status and device acceptance tests]].
 Physical-device validation is required before using real credentials.
+
+* Full password-manager design
+The new product treats SEPass as a donor of reusable components. See
+[[file:docs/product/index.org][the complete product specification]] for content search, editing, recipient management,
+automatic Git synchronization, conflicts, AutoFill, security and release gates.
+These documents describe planned work, not implemented capabilities.

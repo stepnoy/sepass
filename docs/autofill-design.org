@@ -1,6 +1,10 @@
 #+TITLE: SE Pass: AutoFill с аппаратным ключом телефона
 #+DATE: 2026-10-02
 
+* Статус документа
+Этот документ описывает прежний read-only прототип. Полный продукт
+специфицирован в [[file:product/index.org][документации нового клиента]]; SEPass рассматривается как донор.
+
 * Цель и границы первой версии
 Пользователь выбирает SE Pass в системном AutoFill на iPhone/iPad, выбирает
 запись, подтверждает Face ID/Touch ID и получает логин/пароль в Safari или
@@ -14,7 +18,9 @@
 * Исходное состояние
 Upstream SEPass: 21b08e3dd6c0bd94c76fb269bf49c0ca94841cad.
 Приложение хранит clone и keyinfo.json в Application Support, обёрнутые
-представления SE-ключей и Git-секреты в приватном Keychain. SEPassCore содержит
+представления SE-ключей в приватном Keychain. Уточнение по исходникам:
+HTTPS Git credential сериализуется вместе с GitRemote в UserDefaults;
+его перенос в Keychain обязателен в новом продукте. SEPassCore содержит
 OpenPGP-декодер, а KeyManager создаёт новый LAContext для расшифровки.
 Биометрическая политика ключа: privateKeyUsage + biometryCurrentSet.
 Менять криптографию или генерировать новый ключ для AutoFill не требуется.

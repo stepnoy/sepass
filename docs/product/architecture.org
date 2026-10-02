@@ -1,0 +1,98 @@
+#+TITLE: Архитектура, модули и донор SEPass
+
+* Состояние, подтверждённое кодом
+Проверена ревизия форка 40c4a161c816ea251b2fdc46c8a4b37d5dd7a269;
+исходный upstream 21b08e3dd6c0bd94c76fb269bf49c0ca94841cad.
+
+| Компонент донора | Что есть | Решение |
+| Sources/SEPassCore/OpenPGP/Decryptor.swift | Расшифровка для P-256 ECDH; пропуск чужих RSA PKESK | Кандидат на повторное использование после fuzz/interop |
+| OpenPGP/PublicKeyExport.swift, Crypto/KeyProviders.swift | Экспорт public key, интерфейсы ECDH/ECDSA | Сохранить аппаратную абстракцию, проверить формат |
+| App/SEPass/Crypto/SecureEnclaveKeys.swift | CryptoKit SE и biometryCurrentSet | Аппаратный spike до переноса |
+| TOTP.swift | Парсер URI и генерация | Перенести с RFC-векторами и ограничениями входа |
+| Tests/SEPassCoreTests | GPG/rpgp fixtures, roundtrip | Сохранить и расширить; fixtures не равны аудиту |
+| GitService/PureGitService | Clone, remoteHead, refresh заменой каталога; push бросает writeNotSupported | Не использовать как движок редактируемого хранилища |
+| Sources/SEPassCore/Git | Собственный parser/transport/checkout | Источник тестов и знаний, не автоматически полноценный Git |
+| BrowseView/PassStore | Дерево, поиск по имени, path как ID | Перепроектировать под содержимое и внешний rename |
+| AppModel | Git/ключи/UI в одном объекте, try? при замене store | Заменить разделением сервисов и транзакциями |
+| AutoFillShared/SEPassAutoFill | Наш прототип с snapshot/generation | Использовать идеи, аппаратная работа ещё не подтверждена |
+
+Важное исправление ранней документации: GitRemote содержит Codable credential,
+включая HTTPS token; AppModel.saveRemote кодирует его в UserDefaults git.remote.
+Следовательно, утверждение «все Git-секреты донора уже в Keychain» неверно.
+Новый CredentialStore переносит token/password/private transport material в
+приватный Keychain; UserDefaults хранит лишь ссылку, адрес, ветку и настройки.
+
+Донор не содержит готового универсального шифрования записей для произвольных
+OpenPGP-получателей. Умение расшифровать свой P-256 PKESK рядом с RSA PKESK
+не означает умения зашифровать для RSA. Это отдельный обязательный компонент.
+
+* Границы процессов и данных
+Основное приложение → VaultEngine → RepositoryStore + CryptoProvider + GitEngine.
+Поиск → SearchSession → тот же parser/crypto, без второго формата записей.
+AutoFill extension → SnapshotReader + CredentialResolver + CryptoProvider.
+
+Главный app — единственный писатель репозитория и Git-журнала. Расширение
+читает атомарно опубликованный snapshot; не делает Git push и не получает
+сетевые credentials. В P0 создание/изменение выполняется в основном приложении.
+Общий App Group содержит лишь шифротексты, публичные описания и версии.
+Отдельная Keychain access group содержит только необходимое представление
+аппаратного decryption key. Signing/SSH/Git credentials туда не копируются.
+
+* Предлагаемые модули
+| Модуль | Ответственность | Не имеет права |
+| VaultDomain | Запись, поля, политика получателей, ошибки | Обращаться к UI/сети |
+| PassCodec | Lossless parse/serialize, типизированные представления | Заменять неизвестные поля |
+| CryptoProvider | Проверка ключей, decrypt/encrypt, session capability | Выбирать политику доверия за пользователя |
+| RecipientResolver | Ближайшая .gpg-id, bindings, approved fingerprint set | Доверять новому ключу из pull без проверки |
+| RepositoryStore | Ciphertext blobs, атомарные версии, журнал | Хранить постоянный plaintext |
+| GitEngine | Fetch/commit/merge/push, credential callbacks | Force push/выполнять hooks |
+| SyncCoordinator | Один сериализованный pipeline, retry, публикация | Перетирать dirty state новым clone |
+| SearchSession | Поиск с progress/cancel, memory-only кеш | Фоновая биометрия/вечный кеш |
+| SnapshotPublisher | Версия для расширения + identity store | Доступ расширения к credential Git |
+| AppUI / AutoFillUI | Пользовательские потоки | Собственная криптография/копия правил записи |
+
+Swift actors сериализуют мутации и публикацию. Длительные операции не блокируют
+MainActor. Граница FFI (если выбрана C/Rust-библиотека) оперирует ограниченными
+буферами и типизированными ошибками; не передаёт секреты в descriptions/logs.
+
+* Контракты (псевдокод, не готовый API)
+#+begin_example
+EntryRef = (repositoryID, relativePath, ciphertextOID, snapshotGeneration)
+RecipientPolicy = (nearestGpgIdPath, contentHash, approvedFingerprints)
+VaultSnapshot = (generation, localHead, remoteHead, pendingOperations, entries)
+UnlockSession = (id, expiresAt, authenticationContext, cancel)
+
+read(ref, session) -> LosslessEntry | MissingKey | StaleReference
+search(query, snapshot, session) -> stream(Match | Progress | EntryFailure)
+save(edit, expectedCiphertextOID, expectedPolicyHash) -> DurableOperationID
+move(ref, destination, expectedPolicyHash) -> DurableOperationID
+sync(trigger) -> stream(SyncState)
+publish(validatedSnapshot) -> PublishedGeneration
+#+end_example
+
+save всегда повторно проверяет OID и policy непосредственно перед транзакцией.
+Сбой проверки возвращает конфликт/изменение получателей, а не слепую перезапись.
+ID внутри зашифрованной записи необязателен: внешние pass/prs могут его удалить,
+копирование может дублировать. Идентичность не строится только на таком UUID.
+
+* Выбор библиотек: решать экспериментом
+Git: основной кандидат — libgit2 за GitEngine (commit/fetch/merge/push).
+Проверить iOS build, HTTPS/TLS, credential callbacks, memory, лицензии и
+при необходимости SSH. Наличие git_remote_push в API не доказывает готовую
+интеграцию. Собственный push/pack writer донора не расширяем по умолчанию.
+
+OpenPGP: выбрать поддерживаемую библиотеку или ограниченный адаптер после
+проверки multi-recipient writer и инъекции аппаратного ECDH. Перенос parser
+донора допустим при доказанной совместимости/границах; писать новую криптографию
+ради экономии интеграции не является выбранной стратегией.
+
+Ни системного gpg, ни shell git на iOS не предполагается. Изолировать Core
+от NIO/Git-зависимостей донора, чтобы расширение не тянуло сетевой стек без нужды.
+
+* Обновление и миграции
+Версионировать локальную БД, snapshot и настройки независимо от pass-текста.
+Обновление app не должно автоматически менять репозиторный формат или ключ.
+Миграция: подготовка новой версии → проверка → atomic switch → сохранённая
+зашифрованная предыдущая версия для отката. Не откатывать успешно принятые
+операции пользователя. Новый Bundle ID не имеет доступа к SE-ключу App Store
+SEPass: нужна новая идентичность и перешифрование старым доступным получателем.

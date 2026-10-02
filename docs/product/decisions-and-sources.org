@@ -1,0 +1,87 @@
+#+TITLE: Архитектурные решения и первичные источники
+#+DATE: 2026-10-02
+
+* Решения
+| ADR | Статус | Решение и следствие |
+| 001 | Принято для проекта | Новое приложение; SEPass используется как донор компонентов |
+| 002 | Принято | pass/OpenPGP файлы и Git остаются переносимым источником данных |
+| 003 | Принято | Поиск plaintext после unlock; постоянный индекс не обязателен |
+| 004 | Предложено, аппаратный gate | Одна ограниченная SE unlock session для поиска |
+| 005 | Принято | По умолчанию filenames без login; title/login внутри ciphertext |
+| 006 | Принято | Public keys в .public-keys, доверие политики локально утверждается |
+| 007 | Принято | Main app — единственный Git writer; extension читает snapshots |
+| 008 | Принято | Автосинхронизация foreground; background только best effort |
+| 009 | Принято | Three-way конфликты сохраняют обе версии; force push не автоматический |
+| 010 | Предложено, spike | libgit2 adapter вместо расширения clone-only движка |
+| 011 | Открыто до spike | OpenPGP backend с SE ECDH injection и multi-recipient writer |
+| 012 | Принято | Git credentials в приватном Keychain, не в UserDefaults |
+| 013 | Предложено | iOS 17+, SwiftUI, 2 min idle lock и lock on background |
+| 014 | Принято | Индекс iOS с настоящими login/URL только по явному opt-in |
+
+«Принято» здесь фиксирует проектный baseline из обсуждения/технического решения,
+а не утверждает, что реализация уже существует. Изменение security policy,
+публичного формата и продуктовых границ требует нового ADR и проверки миграции.
+
+* Открытые вопросы с владельцем решения и сроком
+- Технический spike S0: можно ли одним LAContext безопасно/быстро выполнить
+  массовый ECDH? Какие iOS/устройства подтверждены? Без ответа SEARCH-01 заблокирован.
+- Инженер S0: какой OpenPGP backend поддерживает нужные алгоритмы, лицензии и
+  аппаратный callback? Не выбирать по одному списку алгоритмов в README.
+- Инженер S0: libgit2 на целевой iOS, зависимости TLS/SSH, общий размер extension.
+- Product перед S2: окончательное idle timeout и варианты блокировки, не меняющие
+  тайно ACL. Рекомендуемый default уже указан; не требуется остановка документации.
+- Product перед S5: системные metadata suggestions по умолчанию выключены для
+  plaintext login; режимы раскрытия доменов и UI согласия.
+- Product перед выпуском: название, Bundle IDs, Apple Team, минимальный iPhone,
+  распространение и поддерживаемые языки. До этого не публиковать приложение.
+- Security перед выпуском: threat review, лицензии перенесённого кода,
+  обновление зависимостей и процедура сообщения об уязвимости.
+
+* Источники и границы выводов
+Проверка источников: 2026-10-02. Ссылки не заменяют аппаратные испытания.
+
+1. pass manual: https://git.zx2c4.com/password-store/about/
+   .gpg-id по папкам, find по именам, grep по содержимому; стандартные операции.
+   Локально дополнительно исследован /opt/homebrew/bin/pass 1.7.4:
+   set_gpg_recipients/reencrypt_path используют GnuPG и ближайшую политику.
+2. Apple BackgroundTasks:
+   https://developer.apple.com/documentation/backgroundtasks/choosing-background-strategies-for-your-app
+   ОС определяет время фонового запуска. Foreground cadence/retry в спецификации
+   — наши проектные решения, не обещанные Apple гарантии.
+3. Apple Credential Provider:
+   https://developer.apple.com/documentation/authenticationservices/ascredentialproviderviewcontroller
+   Отдельное расширение; системные credential identities опциональны.
+4. Apple Identity Store:
+   https://developer.apple.com/documentation/authenticationservices/ascredentialidentitystore
+   Индекс системных подсказок отличен от нашего шифрованного store.
+5. Apple LAContext:
+   https://developer.apple.com/documentation/localauthentication/lacontext
+   Управление authentication context. Это не доказательство одинакового поведения
+   reuse на всех Face ID/Touch ID устройствах.
+6. Apple key sharing и Secure Enclave:
+   https://developer.apple.com/documentation/security/ksecattraccessgroup
+   https://developer.apple.com/documentation/cryptokit/secureenclave
+   Shared access group и nonexportable SE key требуют правильной подписи/ACL.
+7. libgit2 push API:
+   https://libgit2.org/docs/reference/main/remote/git_remote_push.html
+   Кандидат поддерживает push; пригодность сборки iOS проверяется отдельно.
+8. Proton export:
+   https://proton.me/support/pass-export
+   JSON/ZIP, включая PGP-encrypted JSON. Наличие экспорта не доказывает перенос
+   функций passkeys/алиасов/вложений в pass.
+9. Proton Pass iOS (исследованный пример разделения AutoFill потоков):
+   https://github.com/protonpass/ios-pass/tree/0b0fc360656e566c20bda61f87631173d70e3da0/AutoFill
+   Не утверждаем, что Proton использует нашу криптографию/SE policy, и не копируем
+   его исходники в этой работе.
+10. SEPass donor:
+    https://github.com/modiotlabs/sepass/tree/21b08e3dd6c0bd94c76fb269bf49c0ca94841cad
+    Fork prototype:
+    https://github.com/stepnoy/sepass/tree/40c4a161c816ea251b2fdc46c8a4b37d5dd7a269
+    Проверены конкретные исходники, перечисленные в architecture.org, и LICENSE.
+
+* Изменения относительно раннего AutoFill-дизайна
+Ранние docs/autofill-design.org и autofill-testing.org описывают read-only
+прототип, не полный продукт. Они не определяют границы нового приложения.
+Новый проект добавляет полноценный writer, searchable content, отдельный
+Git engine и автоматическую синхронизацию. Состояние проверки прототипа
+сохранено для честной оценки донорского кода.

@@ -1,0 +1,102 @@
+#+TITLE: План реализации, испытания и выпуск
+
+* Этапы с выходными критериями
+| Этап | Результат | Gate |
+| S0: технические эксперименты | SE session, extension sharing, crypto writer, Git write | Реальное устройство + multi-recipient + push/conflict proof |
+| S1: доменная модель | Lossless codec, recipient policy, journal, безопасное хранилище | Сбой на каждом шаге не теряет данные |
+| S2: чтение и поиск | Opaque filenames, decrypted search, session/lock | Поиск login/URL/note с progress/cancel и без prompt storm |
+| S3: редактор | CRUD, генератор, move, TOTP, офлайн | GPG и prs читают созданное телефоном; старые поля сохранены |
+| S4: автоматический Git | Foreground sync, queue, merge, background best effort | Два клиента, конкурирующие операции, recovery после crash |
+| S5: AutoFill | Поиск по login внутри provider, exact-site fill | Safari/app fill, cancel, revocation, offline на iPhone |
+| S6: миграция и hardening | Proton importer, onboarding, recovery, release pipeline | Полная приёмка, security review, готовый rollback |
+
+Не оценивать как «пару экранов». До S0 срок и стоимость ненадёжны. Планировать
+отдельные оценки после доказательства аппаратной сессии и выбора библиотек.
+Зависимости: S2/S3 требуют S1 и crypto spike; S4 требует journaling и Git spike;
+S5 требует session/snapshot contracts; S6 проверяет интеграцию всех сценариев.
+
+* S0: вопросы, которые нельзя закрыть документацией
+SPIKE-01. iPhone Face ID: 100/1000 decrypt с одним LAContext и текущей ACL;
+число prompt, время, память, cancel и invalidate. Отдельно Touch ID устройство.
+Не снижать ACL для красивого результата. Результат: измерения + решение session ADR.
+
+SPIKE-02. SE key создан app, использован extension с корректными entitlement,
+App Group и Keychain sharing. Проверить после перезапуска, lock/reboot и при
+смене биометрии только на одноразовом тестовом ключе.
+
+SPIKE-03. Encrypt на RSA YubiKey + SE P-256 в одном сообщении, decrypt независимо
+на обоих; pass→app и app→GPG/prs, armored/binary, corrupted integrity, wrong key,
+expired/revoked subkey, несколько получателей. Зафиксировать backend/версии.
+
+SPIKE-04. Полноценный локальный Git commit/fetch/merge/push на iOS через выбранный
+engine. Два устройства меняют один и разные файлы, сервер отклоняет stale push,
+сеть исчезает после принятия push до ответа. Нет потери/двойной операции.
+
+SPIKE-05. Проверка actual extension memory budget с 100/1000/10000 записями;
+не переносить весь plaintext cache main app в extension автоматически.
+
+* Матрица проверок
+| ID | Проверка | Связанные требования |
+| T01 | Запись main.gpg находится по email, Unicode title, URL и заметке | SEARCH-01, FILL-02 |
+| T02 | Cancel/lock очищает кеш; устаревший async callback не отдаёт пароль | LOCK-01, SEARCH-02 |
+| T03 | Новый/изменённый ciphertext читают телефон и независимый YubiKey | READ-01, WRITE-02, RECOVER-01 |
+| T04 | Один public key отсутствует/невалиден: запись не совершается | WRITE-02, KEY-01 |
+| T05 | Подменены .gpg-id вместе с ключом: требуется подтверждение политики | KEY-02 |
+| T06 | Unknown fields, CRLF, leading/trailing password spaces, repeated URLs | WRITE-03 |
+| T07 | Внешний rename, case collision, symlink, nested .gpg-id, hidden recipients | ORGANIZE-01 |
+| T08 | Edit/edit, delete/edit, rename/edit, policy/edit конфликт | SYNC-03 |
+| T09 | Disk full/kill/crash между journal, ciphertext, commit и publish | WRITE-01, SYNC-02 |
+| T10 | iOS background запрещён, Low Power, force quit, lock/reboot | SYNC-01, APP-01 |
+| T11 | HTTPS 401/403, TLS error, timeout, retry, ограниченный доступ token | SYNC-02 |
+| T12 | Safari и приложение, mismatch domain, stale identity, cancel Face ID | FILL-01 |
+| T13 | Proton counts/type/fields, collisions, trash, passkeys/attachments report | IMPORT-01 |
+| T14 | Новый телефон + recovery key, старый SE key недоступен | RECOVER-01 |
+| T15 | Данные отсутствуют в logs, defaults, crash fixtures и plaintext files | Все требования безопасности |
+| T16 | UI VoiceOver/Dynamic Type, offline status, отсутствие ложного «synced» | APP-01, SYNC-02 |
+| T17 | RFC TOTP vectors, URI parameters, time boundary, неверный secret | OTP-01 |
+| T18 | Upgrade/credential migration failure, old snapshot schema, rollback | APP-01, KEY-01 |
+| T19 | Генератор пароля: CSPRNG, ограничения сайта, отсутствие журналирования | WRITE-01 |
+
+Unit tests: codec/политика/пути/машина состояний/merge decisions/normalization.
+Integration: реальные OpenPGP движки, временный Git server, multi-process snapshots,
+идемпотентность операций. Fuzz: PGP packet/armor/compression, lossless parser,
+недоверенные Git/ZIP структуры. UI: onboarding, редактирование, конфликты.
+Hardware: SE/Face ID/Touch ID/AutoFill и резервный YubiKey. Simulator не заменяет
+hardware suite. В CI только синтетические секреты/fixtures, никакого реального vault.
+
+* План миграции пользователя
+Подготовка: Proton остаётся источником до завершения проверки; export encrypted
+ZIP хранится вне Git store. План показывает число активных/удалённых записей,
+типов, TOTP, passkeys/attachments и невалидных полей, без показа секретов.
+
+Naming до импорта: lowercase/translit, my/work, filenames без login. Изменить
+существующий scripts/proton_to_pass.py отдельно; он пока создаёт account filename
+из login. Не путать наличие скрипта с завершённым импортом.
+
+Конверсия в отдельную новую папку, encrypt для полного набора получателей;
+исходные объекты сохранить внутри .gpg для проверки полей. Проверить точность
+содержимого и количество; выборочное открытие на обоих независимых получателях,
+поиск и AutoFill на iPhone. Затем merge в рабочее store без overwrite, commit/push.
+Удаление источника Proton не автоматизируется как часть успешной конверсии.
+
+* Первый полноценный выпуск
+Все P0 имеют пройденные acceptance tests, подтверждённые версии OS/SDK/libs,
+измерения скорости и памяти. Резервное восстановление воспроизведено человеком
+по инструкции. Нет известных data-loss/recipient-leak багов. Внешний review
+криптографической интеграции, shared key access и conflict/transaction логики
+выполнен до рекомендации хранить единственные копии секретов.
+
+Delivery: отдельные app/extension bundle IDs, одна команда подписания,
+зарегистрированные capabilities, локальные signing secrets вне Git. Release
+notes и миграция состояния; обновление app не меняет recipients автоматически.
+Конкретный канал TestFlight/App Store согласуется перед публикацией, не сейчас.
+
+* Что уже проверено и что нет
+Прототип AutoFill: unit tests ядра и прямой typecheck для iOS/simulator прошли
+в предыдущей задаче. Полная Xcode сборка тогда блокировалась несовместимым
+DVTDownloads; актуальный статус установки здесь повторно не проверялся.
+Аппаратная работа расширения, SE session search, writer и push нового клиента
+ещё НЕ подтверждены. Эта документация не меняет их статус на готово.
+
+Существующий конвертер: 8 тестов на синтетических данных, включая GPG roundtrip;
+это не приёмка будущего iOS-продукта и не подтверждение импорта реального vault.
